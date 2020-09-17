@@ -56,6 +56,8 @@ def RayTrace(image, camera, shape, light):
                     '''
                     if isinstance(i.pShape, Sphere):
                         local_color = i.pShape.lighting(i.ray.calculate(i.t), light, camera.origin)
+                        # change
+                        local_color = i.pShape.lighting(i.ray.calculate(i.t), light, -ray.direction)
                     else:
                         local_color = i.color
                     image.image[x,y] = clamp_color(local_color) #white
