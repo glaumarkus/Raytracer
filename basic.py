@@ -46,7 +46,8 @@ def RayTrace(image, camera, shape, light):
             if camera.getRay(x,y):
                 r = camera.getRay(x,y)
                 i = Intersection(r, RAY_T_MAX)
-                if shape.intersect(i):
+
+                if shape.intersect(i, light):
                     '''
                     local_color = i.pShape.material.color
                     light_color = black
@@ -54,94 +55,47 @@ def RayTrace(image, camera, shape, light):
                         light_color = i.pShape.lighting(i.ray.calculate(i.t), light, camera.origin)
                         print(local_color, light_color)
                     '''
-                    if isinstance(i.pShape, Sphere):
-                        local_color = i.pShape.lighting(i.ray.calculate(i.t), light, camera.origin)
-                        # change
-                        local_color = i.pShape.lighting(i.ray.calculate(i.t), light, -ray.direction)
-                    else:
-                        local_color = i.color
-                    image.image[x,y] = clamp_color(local_color) #white
+                    #if isinstance(i.pShape, Sphere):
+                    #    local_color = 
+                    #print(i.pShape.lighting(i.ray.calculate(i.t), light, -r.direction)) #* i.pShape.material.color
+                    #else:
+                    #    local_color = i.color
+                    image.image[x,y] = clamp_color(i.color)
                 else:
-                    image.image[x,y] = black #np.array([0.,0.,0.])#black
+                    image.image[x,y] = black
 
 
-'''
-m = Material(color=np.array([1,1,1]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=200.)
-
-# in seiner Function hat er 
-# point = 0,0,0
-# light.origin
-# camera.origin
-# normal = 0,0,-1
-
-# direct
-origin = np.array([0.,0.,-1])
-s1 = Sphere(np.array([0,0,0]), 1, m)
-r = Ray(origin, normalize(s1.center - origin))
-i = Intersection(r, RAY_T_MAX)
-l = Light(np.array([0,0,-10]), np.array([1,1,1]))
-print('Direct Light:', s1.intersect(i))
-print('Add. light:', s1.lighting(i.ray.calculate(i.t), l, origin))
-#print('Normal Color:', i.pShape.material.color)
-#print('Final Color:', s1.lighting(i.ray.calculate(i.t), l, origin) + i.pShape.material.color)
-print('')
-
-# off angle
-origin = np.array([0., math.sqrt(2) / 2, math.sqrt(2) / -2])
-r = Ray(origin, normalize(s1.center - origin))
-i = Intersection(r, RAY_T_MAX)
-
-print('Off Angle Light:', s1.intersect(i))
-print('Add. light:', s1.lighting(i.ray.calculate(i.t), l, origin))
-#print('Normal Color:', i.pShape.material.color)
-#print('Final Color:', s1.lighting(i.ray.calculate(i.t), l, origin) + i.pShape.material.color)
-print('')
-
-# eye opposite surface
-origin = np.array([0.,0, -1])
-l = Light(np.array([0,10,-10]), np.array([1,1,1]))
-r = Ray(origin, normalize(s1.center - origin))
-i = Intersection(r, RAY_T_MAX)
-
-print('Eye Opposite reflection vector:', s1.intersect(i))
-print('Add. light:', s1.lighting(i.ray.calculate(i.t), l, origin))
-#print('Normal Color:', i.pShape.material.color)
-#print('Final Color:', s1.lighting(i.ray.calculate(i.t), l, origin) + i.pShape.material.color)
-print('')
-
-# eye opposite surface
-origin = np.array([0.,0, -1])
-l = Light(np.array([0,0,10]), np.array([1,1,1]))
-r = Ray(origin, normalize(s1.center - origin))
-i = Intersection(r, RAY_T_MAX)
-
-print('Behind surface:', s1.intersect(i))
-print('Add. light:', s1.lighting(i.ray.calculate(i.t), l, origin))
-#print('Normal Color:', i.pShape.material.color)
-#print('Final Color:', s1.lighting(i.ray.calculate(i.t), l, origin) + i.pShape.material.color)
-print('')
-
-'''
 
 if __name__ == '__main__':
 
     print('Start Raytracer')
 
-    m = Material(color=np.array([.172,.709,.529]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=200.)
+    m = Material(color=np.array([.172,.709,.529]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=80.)
+    m1 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
+    m2 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
+    m3 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
+    m4 = Material(color=np.array([.72,.709,.529]), ambient=0.4, diffuse=0.9, specular=0.9, shinyness=200.)
+    m5 = Material(color=np.array([.72,.709,.529]), ambient=0.5, diffuse=0.9, specular=0.9, shinyness=200.)
     # Standard Vals white, 
 
-    s1 = Sphere(np.array([200.,0.,0]), 10, m)
-    p = Plane(np.array([0., 0., -10]), np.array([0., 0., 1.]), m)
     s = ShapeSet()
+    s1 = Sphere(np.array([200.,0.,0]), 15, m1, s)
+    s2 = Sphere(np.array([200.,45.,0]), 15, m2, s)
+    s3 = Sphere(np.array([200.,-45.,0]), 15, m3, s)
+
+    p = Plane(np.array([0., 0., -30]), np.array([0., 0., 1.]), m, s)
+    #s = ShapeSet()
     s.addShape(s1)
+    s.addShape(s2)
+    s.addShape(s3)
     s.addShape(p)
 
-    l = Light(np.array([200, 0, 30]), .5)
+    l = Light(np.array([50, 100, 200]), 1.)
 
-    res = 1080
+    res = 800
     c = Camera(
         res,                             
-        np.array([-100.,0.,100.]),        # origin
+        np.array([-200.,0.,100.]),        # origin
         np.array([.8, 0., -.2]),         # direction
         np.array([0., 0., 1.]),         # up
         np.array([0., 1., 0.]),         # right
@@ -153,15 +107,9 @@ if __name__ == '__main__':
     RayTrace(img, c, s, l)
 
     img_rgb = img.get_image()
-    cv2_imshow('img',img_rgb)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.imwrite('test.png', img_rgb) 
+    #cv2_imshow('img',img_rgb)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
 
-'''
-Test
-camera = 0,0,-1
-normal = 0,0,-1
-light = 0,0,-10, color white
-
-'''
