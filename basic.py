@@ -41,13 +41,26 @@ def RayTrace(image, camera, shape, light):
     image.create_image(camera.H * 2, camera.W * 2)
     black = np.array([0.,0.,0.])
     white = np.array([1.,1.,1])
+
+    print('Duration:')
+    sep = int(image.H / 10)
+    counter = 0
+
     for x in range(image.H):
+
+        counter += 1
+        if counter > sep:
+            counter = 0
+            print('#', end='', flush=True)
+
         for y in range(image.W):
             if camera.getRay(x,y):
                 r = camera.getRay(x,y)
                 i = Intersection(r, RAY_T_MAX)
+                #print(r.origin, r.direction)
 
                 if shape.intersect(i, light):
+                    #print('intersection')
                     '''
                     local_color = i.pShape.material.color
                     light_color = black
@@ -70,33 +83,34 @@ if __name__ == '__main__':
 
     print('Start Raytracer')
 
-    m = Material(color=np.array([.172,.709,.529]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=80.)
-    m1 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
-    m2 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
-    m3 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=0.9, shinyness=200.)
+    m = Material(color=np.array([1.,.8,.8]), ambient=0.1, diffuse=0.9, specular=1., shinyness=26.)
+    m1 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
+    m2 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
+    m3 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=200.)
     m4 = Material(color=np.array([.72,.709,.529]), ambient=0.4, diffuse=0.9, specular=0.9, shinyness=200.)
     m5 = Material(color=np.array([.72,.709,.529]), ambient=0.5, diffuse=0.9, specular=0.9, shinyness=200.)
     # Standard Vals white, 
 
-    s = ShapeSet()
-    s1 = Sphere(np.array([200.,0.,0]), 15, m1, s)
-    s2 = Sphere(np.array([200.,45.,0]), 15, m2, s)
-    s3 = Sphere(np.array([200.,-45.,0]), 15, m3, s)
 
-    p = Plane(np.array([0., 0., -30]), np.array([0., 0., 1.]), m, s)
-    #s = ShapeSet()
+    s1 = Sphere(np.array([200.,0.,0]), 15, m)
+    s2 = Sphere(np.array([200.,45.,0]), 15, m2)
+    s3 = Sphere(np.array([200.,-45.,0]), 15, m3)
+
+    p = Plane(np.array([0., 0., -15]), np.array([0, 0., 1.]), m1, checkboard=False)
+
+    s = ShapeSet()
     s.addShape(s1)
-    s.addShape(s2)
-    s.addShape(s3)
     s.addShape(p)
 
-    l = Light(np.array([50, 100, 200]), 1.)
+    print(s.shapes)
 
-    res = 800
+    l = Light(np.array([200, 0, 50]), 1.)
+
+    res = 106
     c = Camera(
         res,                             
-        np.array([-200.,0.,100.]),        # origin
-        np.array([.8, 0., -.2]),         # direction
+        np.array([-100.,0.,30.]),        # origin
+        np.array([0.9, 0, -.1]),         # direction
         np.array([0., 0., 1.]),         # up
         np.array([0., 1., 0.]),         # right
         15.,                            # fov
@@ -107,8 +121,10 @@ if __name__ == '__main__':
     RayTrace(img, c, s, l)
 
     img_rgb = img.get_image()
-    cv2.imwrite('test.png', img_rgb) 
-    #cv2_imshow('img',img_rgb)
+    img_rgb *= 255
+
+    cv2.imwrite('test.jpg', img_rgb.astype(int)) 
+    #cv2_imshow('img',img_rgb.astype(int))
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
 
