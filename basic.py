@@ -5,7 +5,7 @@ from cv2 import imshow as cv2_imshow
 
 from ray import Ray
 from intersection import Intersection
-from shapes import Material, ShapeSet, Plane, Sphere, Light
+from shapes import Material, ShapeSet, Plane, Sphere, Light, CheckBoard
 from observer import Image, Camera
 
 
@@ -43,36 +43,23 @@ def RayTrace(image, camera, shape, light):
     white = np.array([1.,1.,1])
 
     print('Duration:')
-    sep = int(image.H / 10)
+    sep = int(image.H / 40)
     counter = 0
+    counter2 = 0
 
     for x in range(image.H):
 
         counter += 1
         if counter > sep:
             counter = 0
+            counter2 += 1
             print('#', end='', flush=True)
 
         for y in range(image.W):
             if camera.getRay(x,y):
                 r = camera.getRay(x,y)
                 i = Intersection(r, RAY_T_MAX)
-                #print(r.origin, r.direction)
-
                 if shape.intersect(i, light):
-                    #print('intersection')
-                    '''
-                    local_color = i.pShape.material.color
-                    light_color = black
-                    if isinstance(i.pShape, Sphere):
-                        light_color = i.pShape.lighting(i.ray.calculate(i.t), light, camera.origin)
-                        print(local_color, light_color)
-                    '''
-                    #if isinstance(i.pShape, Sphere):
-                    #    local_color = 
-                    #print(i.pShape.lighting(i.ray.calculate(i.t), light, -r.direction)) #* i.pShape.material.color
-                    #else:
-                    #    local_color = i.color
                     image.image[x,y] = clamp_color(i.color)
                 else:
                     image.image[x,y] = black
@@ -83,34 +70,40 @@ if __name__ == '__main__':
 
     print('Start Raytracer')
 
-    m = Material(color=np.array([1.,.8,.8]), ambient=0.1, diffuse=0.9, specular=1., shinyness=26.)
-    m1 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
-    m2 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
+    petrol = np.array([0.498, 0.403, 0.])
+
+    m = Material(color=np.array([1.,0.,0.]), ambient=0.1, diffuse=0.9, specular=1., shinyness=26.)
+    m1 = Material(color=petrol, ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
+    m2 = Material(color=np.array([.9,.9,.9]), ambient=0.2, diffuse=.9, specular=1., shinyness=100.)
     m3 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=200.)
     m4 = Material(color=np.array([.72,.709,.529]), ambient=0.4, diffuse=0.9, specular=0.9, shinyness=200.)
-    m5 = Material(color=np.array([.72,.709,.529]), ambient=0.5, diffuse=0.9, specular=0.9, shinyness=200.)
+    m5 = Material(color=np.array([.8,.8,.8]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=200.)
     # Standard Vals white, 
 
 
-    s1 = Sphere(np.array([200.,0.,0]), 15, m)
-    s2 = Sphere(np.array([200.,45.,0]), 15, m2)
-    s3 = Sphere(np.array([200.,-45.,0]), 15, m3)
+    s1 = Sphere(np.array([230.,0.,5]), 15, m)
+    s2 = Sphere(np.array([250.,45.,5]), 15, m2)
+    s3 = Sphere(np.array([270.,-45.,5]), 15, m3)
 
-    p = Plane(np.array([0., 0., -15]), np.array([0, 0., 1.]), m1, checkboard=False)
+    p = Plane(np.array([0., 0., -10]), np.array([0, 0., 1.]), m1)
+    #p = CheckBoard(np.array([0., 0., -10]), np.array([0, 0., 1.]), m2)
 
     s = ShapeSet()
     s.addShape(s1)
+    s.addShape(s2)
+    s.addShape(s3)
+    
     s.addShape(p)
 
     print(s.shapes)
 
     l = Light(np.array([200, 0, 50]), 1.)
 
-    res = 106
+    res = 1060
     c = Camera(
         res,                             
-        np.array([-100.,0.,30.]),        # origin
-        np.array([0.9, 0, -.1]),         # direction
+        np.array([-100.,0.,100.]),        # origin
+        np.array([0.8, 0, -.2]),         # direction
         np.array([0., 0., 1.]),         # up
         np.array([0., 1., 0.]),         # right
         15.,                            # fov
