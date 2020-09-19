@@ -39,13 +39,13 @@ shadow = np.array([-0.7, -0.7, -0.7])
 
 
 class Material:
-    def __init__(self, color, ambient, diffuse, specular, shinyness, refraction=0):
+    def __init__(self, color, ambient, diffuse, specular, shinyness, refraction_weight=0.9):
         self.color = color
         self.ambient = ambient
         self.diffuse = diffuse
         self.specular = specular
         self.shinyness = shinyness
-        self.refraction = refraction
+        self.refraction_weight = refraction_weight
 
 
 class ShapeSet:
@@ -123,8 +123,8 @@ class Plane():
         light_color = self.getLight(pt, intersection.ray.direction, light, light_vector)
         #else:
         #    light_color = black
-        if self.material.refraction > 0:
-            refraction_color = self.getRefraction()
+        if self.material.refraction > 0.:
+            refraction_color = self.getRefraction(intersection, pt)
         else:
             refraction_color = black
         #return base_color + light_color + refraction_color
@@ -135,6 +135,10 @@ class Plane():
 
     def getRefraction(self):
         # iterate over number of refractions
+
+        reflection = reflect(intersection.direction, self.normal)
+        print()
+
         return black
 
     def getShadow(self, pt, shapeSet, light_vector):

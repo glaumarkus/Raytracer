@@ -116,6 +116,11 @@ if __name__ == '__main__':
         s.addShape(right)
 
     else:
+        s = ShapeSet()
+        s.addShape(s1)
+        s.addShape(b)
+
+
         pass
 
     l = Light(np.array([-130, 170, 230]), .8)
