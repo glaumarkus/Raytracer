@@ -6,7 +6,7 @@ from cv2 import imshow as cv2_imshow
 from ray import Ray
 
 RAY_T_MIN = 0.0001
-RAY_T_MAX = 1.0e3
+RAY_T_MAX = 1.0e4
 
 def dot(v1, v2):
     return(np.dot(v1, v2))
@@ -63,7 +63,7 @@ class Camera:
             for x in range(-self.W, self.W + 1):
                 vertical_add = math.tan(self.increment * x * math.pi / 180)
                 target_point = normalize((vertical_add * self.right + self.direction) + (horizontal_add * self.up + self.direction))
-                self.RayMap[(y + self.H,x + self.W)] = Ray(self.origin , target_point)
+                self.RayMap[(y + self.H,x + self.W)] = Ray(self.origin , target_point, RAY_T_MAX)
                 
     def getRay(self, x, y):
         return self.RayMap[(x,y)]

@@ -10,7 +10,7 @@ from observer import Image, Camera
 
 
 RAY_T_MIN = 0.0001
-RAY_T_MAX = 1.0e3
+RAY_T_MAX = 1.0e4
 
 def dot(v1, v2):
     return(np.dot(v1, v2))
@@ -70,43 +70,64 @@ if __name__ == '__main__':
 
     print('Start Raytracer')
 
-    petrol = np.array([0.498, 0.403, 0.])
-
-    m = Material(color=np.array([1.,0.,0.]), ambient=0.1, diffuse=0.9, specular=1., shinyness=26.)
-    m1 = Material(color=petrol, ambient=0.2, diffuse=.9, specular=1., shinyness=26.)
-    m2 = Material(color=np.array([.9,.9,.9]), ambient=0.2, diffuse=.9, specular=1., shinyness=100.)
-    m3 = Material(color=np.array([.172,.709,.529]), ambient=0.2, diffuse=.9, specular=1., shinyness=200.)
-    m4 = Material(color=np.array([.72,.709,.529]), ambient=0.4, diffuse=0.9, specular=0.9, shinyness=200.)
-    m5 = Material(color=np.array([.8,.8,.8]), ambient=0.1, diffuse=0.9, specular=0.9, shinyness=200.)
-    # Standard Vals white, 
 
 
-    s1 = Sphere(np.array([230.,0.,5]), 15, m)
-    s2 = Sphere(np.array([250.,45.,5]), 15, m2)
-    s3 = Sphere(np.array([270.,-45.,5]), 15, m3)
-
-    p = Plane(np.array([0., 0., -10]), np.array([0, 0., 1.]), m1)
-    #p = CheckBoard(np.array([0., 0., -10]), np.array([0, 0., 1.]), m2)
-
-    s = ShapeSet()
-    s.addShape(s1)
-    s.addShape(s2)
-    s.addShape(s3)
+    # color blueprints
+    blue = np.array([0.498, 0.403, 0.])
+    gray = np.array([0.48, 0.48, 0.48])
+    light_green = np.array([0.756, 0.929, 0.862])
+    light_pink = np.array([0.666, 0.756, 1.])
     
-    s.addShape(p)
+    red = np.array([.047, .09, .447])
+    orange = np.array([.137, .568, .901])
+    green = np.array([.274, .627, .431])
+    white = np.array([1., 1., 1])
 
-    print(s.shapes)
+    MatGray = Material(color=gray, ambient=0.7, diffuse=0.9, specular=1., shinyness=80.)
+    MatBlue = Material(color=blue, ambient=0.7, diffuse=0.9, specular=.9, shinyness=80.)
+    MatRed = Material(color=red, ambient=0.7, diffuse=0.9, specular=.9, shinyness=80.)
+    MatGreen = Material(color=green, ambient=0.7, diffuse=0.6, specular=1., shinyness=80.)
+    MatOrange = Material(color=orange, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
+    MatWhite = Material(color=white, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
+    MatBack = Material(color=light_green, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
+    MatBack2 = Material(color=light_pink, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
 
-    l = Light(np.array([200, 0, 50]), 1.)
+    # build shapes 
+    s1 = Sphere(np.array([170.,0.,20]), 20, MatBlue)
+    s2 = Sphere(np.array([250.,75.,40]), 40, MatRed)
+    s3 = Sphere(np.array([260.,-35.,35]), 35, MatGreen)
+    s4 = Sphere(np.array([200.,-15.,45]), 5, MatOrange)
 
-    res = 1060
+    back = Plane(np.array([300., 0., 0.]), np.array([1., 0., 0.]), MatBack)
+    right = Plane(np.array([0., -170., 0.]), np.array([0, -1., 0.]), MatBack2)
+    #b = Plane(np.array([0., 0., 0]), np.array([0., 0., 1.]), MatGray)
+    b = CheckBoard(np.array([0., 0., 0.]), np.array([0., 0., 1.]), MatGray)
+
+    if True:
+
+        s = ShapeSet()
+        s.addShape(s1)
+        s.addShape(s2)
+        s.addShape(s3)
+        s.addShape(s4)
+
+        s.addShape(b)
+        s.addShape(back)
+        s.addShape(right)
+
+    else:
+        pass
+
+    l = Light(np.array([-130, 170, 230]), .8)
+
+    res = 100
     c = Camera(
         res,                             
-        np.array([-100.,0.,100.]),        # origin
-        np.array([0.8, 0, -.2]),         # direction
+        np.array([-130., 30.,200.]),        # origin
+        np.array([0.66, 0, -.33]),         # direction
         np.array([0., 0., 1.]),         # up
         np.array([0., 1., 0.]),         # right
-        15.,                            # fov
+        20.,                            # fov
         1920 / 1080)                    # ratio
 
 

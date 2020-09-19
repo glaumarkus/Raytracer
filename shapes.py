@@ -7,7 +7,7 @@ from intersection import Intersection
 #from basic import dot, cross, normalize, length2, length, clamp_color, clamp, clip, reflect
 
 RAY_T_MIN = 0.0001
-RAY_T_MAX = 1.0e3
+RAY_T_MAX = 1.0e4
 
 def dot(v1, v2):
     return(np.dot(v1, v2))
@@ -32,14 +32,21 @@ def clip(x, min_x, max_x):
 def reflect(incoming, normal):
     return incoming - normal * 2. * dot(incoming, normal)
 
+# color blueprints
+black = np.array([0.,0.,0.])
+white = np.array([1.,1.,1.])
+shadow = np.array([-0.7, -0.7, -0.7])
+
 
 class Material:
-    def __init__(self, color, ambient, diffuse, specular, shinyness):
+    def __init__(self, color, ambient, diffuse, specular, shinyness, refraction=0):
         self.color = color
         self.ambient = ambient
         self.diffuse = diffuse
         self.specular = specular
         self.shinyness = shinyness
+        self.refraction = refraction
+
 
 class ShapeSet:
     def __init__(self):
@@ -64,78 +71,22 @@ class ShapeSet:
         '''
         for shape in self.shapes:
             if shape == filter_shape:
-                #print('filtered out')
+                continue
+            if isinstance(shape,Plane):
                 continue
             if shape.doesIntersect(intersection):
                 return True
         return False
 
 
-
-
 class Plane():
+
     def __init__(self, position, normal, material, checkboard = True, tilesize = 10):
         self.position = position
         self.normal = normal
         self.checkboard = checkboard
         self.tilesize = tilesize
         self.material = material
-
-    def intersect(self, intersection, light, shapeSet):
-        dDotN = dot(intersection.ray.direction, self.normal)
-        if dDotN == 0.0:
-            return False
-
-        t = dot(self.position - intersection.ray.origin, self.normal) / dDotN
-        if t <= RAY_T_MIN or t >= intersection.t:
-            return False
-
-        intersection.t = t
-        intersection.pShape = self
-
-        base_color = self.material.color
-        shadow_color = self.point_in_shade(intersection.ray.calculate(intersection.t), shapeSet, light)
-        if sum(shadow_color) < -0.1:
-            light_color = self.lighting(intersection.ray.calculate(intersection.t), light, intersection.ray.direction)
-        else:
-            light_color = np.array([0.,0.,0.])
-        #print(light_color)
-
-        intersection.color = base_color + shadow_color + light_color
-        return True
-
-    def lighting(self, pt, light, pov):
-
-        black = np.array([0.,0.,0.])
-        effectiveColor = self.material.color * light.intensity
-        ambientColor = effectiveColor * self.material.ambient
-        diffuseColor = black
-        specularColor = black
-        light_vector = normalize(light.center - pt)
-        lDotN = dot(light_vector, self.normal)
-        # if 0 then no light
-        if lDotN < 0:
-            diffuseColor = black
-            specularColor = black
-        else:
-            diffuseColor = effectiveColor * self.material.diffuse * lDotN
-            reflection = reflect(-light_vector, self.normal)
-            # intensity
-            rDotE = dot(reflection, pov)
-            if rDotE > 0:
-                factor = (rDotE) ** self.material.shinyness
-                specularColor = light.color * self.material.specular * factor
-        return ambientColor + diffuseColor# + specularColor
-
-
-    def point_in_shade(self, pt, shapeSet, light):
-        light_vector = normalize(light.center - pt)
-        r = Ray(pt, light_vector)
-        i = Intersection(r, RAY_T_MAX)
-        if shapeSet.doesIntersect(i, self):
-            return np.array([-0.5,-0.5,-0.5])
-        else:
-            return np.array([0.,0.,0.])
 
     def doesIntersect(self, intersection):
         dDotN = dot(intersection.ray.direction, self.normal)
@@ -146,12 +97,6 @@ class Plane():
             return False
         return True
 
-
-class CheckBoard(Plane):
-    def __init__(self, position, normal, material, tilesize=10):
-        self.tilesize = tilesize
-        super().__init__(position, normal, material)
-
     def intersect(self, intersection, light, shapeSet):
         dDotN = dot(intersection.ray.direction, self.normal)
         if dDotN == 0.0:
@@ -159,24 +104,81 @@ class CheckBoard(Plane):
         t = dot(self.position - intersection.ray.origin, self.normal) / dDotN
         if t <= RAY_T_MIN or t >= intersection.t:
             return False
+
         intersection.t = t
         intersection.pShape = self
-
-        point = intersection.ray.calculate(intersection.t).copy()
-        point += (self.normal * -point)
-
-        cond = sum(point // self.tilesize) % 2 == 0
-        if cond:
-            base_color = self.material.color
-        else:
-            base_color = np.array([0.,0.,0.])
-
-        add_color = self.point_in_shade(intersection.ray.calculate(intersection.t), shapeSet, light)
-        light_color = self.lighting(intersection.ray.calculate(intersection.t), light, intersection.ray.direction)
-        intersection.color = base_color + add_color + light_color
-
+        intersection.color = self.getColor(intersection, light, shapeSet)
         return True
 
+    def getColor(self, intersection, light, shapeSet):
+        # Intersection has occured
+        pt = intersection.ray.calculate(intersection.t)
+        light_vector =normalize(light.center - pt)
+
+        base_color = self.getBaseColor(pt)
+        shadow_color = self.getShadow(pt, shapeSet, light_vector)
+
+        # if spot is in shadow, no lighting required
+        #if shadow_color >= 1.:
+        light_color = self.getLight(pt, intersection.ray.direction, light, light_vector)
+        #else:
+        #    light_color = black
+        if self.material.refraction > 0:
+            refraction_color = self.getRefraction()
+        else:
+            refraction_color = black
+        #return base_color + light_color + refraction_color
+        return shadow_color * (base_color + light_color + refraction_color)
+
+    def getBaseColor(self, pt):
+        return self.material.color
+
+    def getRefraction(self):
+        # iterate over number of refractions
+        return black
+
+    def getShadow(self, pt, shapeSet, light_vector):
+        # check for intersection with other objects
+        r = Ray(pt, light_vector)
+        i = Intersection(r, RAY_T_MAX)
+        if shapeSet.doesIntersect(i, self):
+            return 1 - np.sqrt(self.material.color) + 0.1
+        else:
+            return white
+
+    def getLight(self, pt, pov, light, light_vector):
+        # Phong model - init all colors
+        effectiveColor = self.material.color * light.intensity
+        ambientColor = effectiveColor * self.material.ambient
+        diffuseColor = black
+        specularColor = black
+
+        # if < 0, then no light on surface == parallel
+
+        lDotN = dot(light_vector, self.normal)
+        if lDotN >= 0:
+            diffuseColor = effectiveColor * self.material.diffuse * lDotN
+            reflection = reflect(-light_vector, self.normal)
+            rDotE = dot(reflection, pov)
+            if rDotE > 0:
+                factor = (rDotE) ** self.material.shinyness
+                specularColor = light.color * self.material.specular * factor
+        #else:
+        #    print(light_vector, self.normal, lDotN)
+        return ambientColor + diffuseColor + specularColor
+
+class CheckBoard(Plane):
+    def __init__(self, position, normal, material, tilesize=10):
+        self.tilesize = tilesize
+        super().__init__(position, normal, material)
+    def getBaseColor(self, pt):
+        point = pt.copy()
+        point += (self.normal * -point)
+        cond = sum(point // self.tilesize) % 2 == 0
+        if cond:
+            return self.material.color
+        else:
+            return black
 
 class Light:
     def __init__(self, center, intensity):
@@ -190,7 +192,28 @@ class Sphere:
         self.radius = radius
         self.material = material
 
-        self.highest_factor = 0.
+    def doesIntersect(self, intersection):
+        origin = np.array(intersection.ray.origin - self.center, copy=True)
+        direction = np.array(intersection.ray.direction, copy=True)
+
+        a = sum(direction ** 2)      
+        b = 2 * dot(direction, origin)
+        c = sum(origin ** 2) - self.radius ** 2
+
+        discriminant = b ** 2 - 4 * a * c
+        if discriminant < 0.0:
+            return False
+
+        t1 = (-b - math.sqrt(discriminant)) / (2 * a)
+        t2 = (-b + math.sqrt(discriminant)) / (2 * a)
+
+        if t1 > RAY_T_MIN and t1 < intersection.t:
+            return True
+        elif t2 > RAY_T_MIN and t2 < intersection.t:
+            return True
+        else:
+            return False
+        return False
 
     def intersect(self, intersection, light, shapeSet):
         '''
@@ -211,62 +234,69 @@ class Sphere:
         t1 = (-b - math.sqrt(discriminant)) / (2 * a)
         t2 = (-b + math.sqrt(discriminant)) / (2 * a)
 
-
         if t1 > RAY_T_MIN and t1 < intersection.t:
             intersection.t = t1
         elif t2 > RAY_T_MIN and t2 < intersection.t:
             intersection.t = t2
         else:
             return False
-        #print('Sphere')
+
         intersection.pShape = self
-        intersection.color = self.lighting(intersection.ray.calculate(intersection.t), light, intersection.ray.direction) #+ self.material.color
+        intersection.color = self.getColor(intersection, light, shapeSet)
 
         return True
 
-    def doesIntersect(self, intersection):
-        origin = np.array(intersection.ray.origin - self.center, copy=True)
-        direction = np.array(intersection.ray.direction, copy=True)
+    def getColor(self, intersection, light, shapeSet):
+        # Intersection has occured
+        pt = intersection.ray.calculate(intersection.t)
+        light_vector =normalize(light.center - pt)
 
-        a = sum(direction ** 2)      
-        b = 2 * dot(direction, origin)
-        c = sum(origin ** 2) - self.radius ** 2
+        #base_color = self.getBaseColor(pt)
+        shadow_color = self.getShadow(pt, shapeSet, light_vector)
 
-        discriminant = b ** 2 - 4 * a * c
-        if discriminant < 0.0:
-            return False
-
-        t1 = (-b - math.sqrt(discriminant)) / (2 * a)
-        t2 = (-b + math.sqrt(discriminant)) / (2 * a)
-
-        if t1 > RAY_T_MIN and t1 < intersection.t:
-            return True
-        elif t2 > RAY_T_MIN and t2 < intersection.t:
-            return True
+        # if spot is in shadow, no lighting required
+        #if shadow_color >= 1:
+        light_color = self.getLight(pt, intersection.ray.direction, light, light_vector)
+        #else:
+        #    light_color = black
+        if self.material.refraction > 0:
+            refraction_color = self.getRefraction()
         else:
-            return False
-        return False
+            refraction_color = black
+
+        #print(shadow_color, light_color, base_color)
+        return shadow_color * (light_color + refraction_color)
+        #  + base_color
+
 
     def normalFromPt(self, point):
         return normalize(point - self.center)
 
-    def lighting(self, pt, light, pov):
+    def getBaseColor(self, point):
+        return self.material.color
 
-        black = np.array([0.,0.,0.])
+    def getShadow(self, pt, shapeSet, light_vector):
+        # check for intersection with other objects
+        r = Ray(pt, light_vector)
+        i = Intersection(r, RAY_T_MAX)
+        if shapeSet.doesIntersect(i, self):
+            return 1 - np.sqrt(self.material.color) + 0.1
+        else:
+            return white
+
+    def getLight(self, pt, pov, light, light_vector):
+        # Phong model - init all colors
         effectiveColor = self.material.color * light.intensity
         ambientColor = effectiveColor * self.material.ambient
         diffuseColor = black
         specularColor = black
-        light_vector = normalize(light.center - pt)
-        lDotN = dot(light_vector, self.normalFromPt(pt))
-        # if 0 then no light
-        if lDotN < 0:
-            diffuseColor = black
-            specularColor = black
-        else:
+        normal = self.normalFromPt(pt)
+
+        # if < 0, then no light on surface == parallel
+        lDotN = dot(light_vector, normal)
+        if lDotN >= 0:
             diffuseColor = effectiveColor * self.material.diffuse * lDotN
-            reflection = reflect(-light_vector, self.normalFromPt(pt))
-            # intensity
+            reflection = reflect(-light_vector, normal)
             rDotE = dot(reflection, pov)
             if rDotE > 0:
                 factor = (rDotE) ** self.material.shinyness
