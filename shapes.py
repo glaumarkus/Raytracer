@@ -123,8 +123,8 @@ class Plane():
         light_color = self.getLight(pt, intersection.ray.direction, light, light_vector)
         #else:
         #    light_color = black
-        if self.material.refraction > 0.:
-            refraction_color = self.getRefraction(intersection, pt)
+        if self.material.refraction_weight > 0.:
+            refraction_color = self.getRefraction(intersection, pt, shapeSet, light)
         else:
             refraction_color = black
         #return base_color + light_color + refraction_color
@@ -133,11 +133,20 @@ class Plane():
     def getBaseColor(self, pt):
         return self.material.color
 
-    def getRefraction(self):
+    def getRefraction(self, intersection, pt, shapeSet, light):
         # iterate over number of refractions
 
-        reflection = reflect(intersection.direction, self.normal)
-        print()
+        reflection = reflect(intersection.ray.direction, self.normal)
+        #print('point from: ', intersection.ray.origin, ' direction: ', intersection.ray.direction)
+        #print('reflection: ', pt, ' direction: ',reflection)
+
+        r = Ray(pt, reflection)
+        i = Intersection(r, RAY_T_MAX)
+
+        if shapeSet.intersect(i, light, self):
+            print('intersection of', self, ' with ', i.pShape)
+            print(i.color)
+            print(self.color)
 
         return black
 
@@ -263,8 +272,8 @@ class Sphere:
         light_color = self.getLight(pt, intersection.ray.direction, light, light_vector)
         #else:
         #    light_color = black
-        if self.material.refraction > 0:
-            refraction_color = self.getRefraction()
+        if self.material.refraction_weight > 0:
+            refraction_color = self.getRefraction(intersection, pt)
         else:
             refraction_color = black
 
@@ -272,6 +281,14 @@ class Sphere:
         return shadow_color * (light_color + refraction_color)
         #  + base_color
 
+    def getRefraction(self, intersection, pt):
+        # iterate over number of refractions
+
+        reflection = reflect(intersection.ray.direction, self.normalFromPt(pt))
+        #print('point from: ', intersection.ray.origin, ' direction: ', intersection.ray.direction)
+        #print('reflection: ', pt, ' direction: ',reflection)
+
+        return black
 
     def normalFromPt(self, point):
         return normalize(point - self.center)
