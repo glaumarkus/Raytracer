@@ -1,6 +1,6 @@
 # Raytracer
 
 to implement:
-- refraction of rays (check for color and weight them)
+- refraction of rays (more than one)
 
 - multiple lights

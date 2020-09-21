@@ -85,18 +85,21 @@ if __name__ == '__main__':
 
     MatGray = Material(color=gray, ambient=0.7, diffuse=0.9, specular=1., shinyness=80.)
     MatBlue = Material(color=blue, ambient=0.7, diffuse=0.9, specular=.9, shinyness=80.)
-    MatRed = Material(color=red, ambient=0.7, diffuse=0.9, specular=.9, shinyness=80.)
+    MatRed = Material(color=white, ambient=0.7, diffuse=0.9, specular=.9, shinyness=80., refraction_weight=.8)
     MatGreen = Material(color=green, ambient=0.7, diffuse=0.6, specular=1., shinyness=80.)
-    MatOrange = Material(color=orange, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
+    MatOrange = Material(color=orange, ambient=0.1, diffuse=0.9, specular=1., shinyness=80., refraction_weight=.4)
     MatWhite = Material(color=white, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
     MatBack = Material(color=light_green, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
     MatBack2 = Material(color=light_pink, ambient=0.1, diffuse=0.9, specular=1., shinyness=80.)
 
     # build shapes 
     s1 = Sphere(np.array([170.,0.,20]), 20, MatBlue)
-    s2 = Sphere(np.array([250.,75.,40]), 40, MatRed)
-    s3 = Sphere(np.array([260.,-35.,35]), 35, MatGreen)
+    s2 = Sphere(np.array([250.,95.,60]), 60, MatGreen)
+    s3 = Sphere(np.array([260.,-35.,35]), 35, MatRed)
     s4 = Sphere(np.array([200.,-15.,45]), 5, MatOrange)
+    s5 = Sphere(np.array([0., 0., 20.]), 20, MatRed)
+    s6 = Sphere(np.array([-20., 10., 5.]), 5, MatOrange)
+    s7 = Sphere(np.array([-20., -10., 5.]), 5, MatGreen)
 
     back = Plane(np.array([300., 0., 0.]), np.array([1., 0., 0.]), MatBack)
     right = Plane(np.array([0., -170., 0.]), np.array([0, -1., 0.]), MatBack2)
@@ -116,8 +119,12 @@ if __name__ == '__main__':
         s.addShape(right)
 
     else:
+
+        # Refraction test
         s = ShapeSet()
-        s.addShape(s1)
+        s.addShape(s5)
+        s.addShape(s6)
+        s.addShape(s7)
         s.addShape(b)
 
 
@@ -125,11 +132,11 @@ if __name__ == '__main__':
 
     l = Light(np.array([-130, 170, 230]), .8)
 
-    res = 100
+    res = 1060
     c = Camera(
         res,                             
-        np.array([-130., 30.,200.]),        # origin
-        np.array([0.66, 0, -.33]),         # direction
+        np.array([-280., 0.,20.]),        # origin
+        np.array([1., 0., 0.]),         # direction
         np.array([0., 0., 1.]),         # up
         np.array([0., 1., 0.]),         # right
         20.,                            # fov
@@ -141,8 +148,9 @@ if __name__ == '__main__':
 
     img_rgb = img.get_image()
     img_rgb *= 255
+    blur = cv.GaussianBlur(img_rgb,(5,5),0)
 
-    cv2.imwrite('test.jpg', img_rgb.astype(int)) 
+    cv2.imwrite('test.jpg', blur.astype(int)) 
     #cv2_imshow('img',img_rgb.astype(int))
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()

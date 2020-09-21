@@ -8,6 +8,7 @@ from intersection import Intersection
 
 RAY_T_MIN = 0.0001
 RAY_T_MAX = 1.0e4
+MAX_REFRACTIONS = 1
 
 def dot(v1, v2):
     return(np.dot(v1, v2))
@@ -39,7 +40,7 @@ shadow = np.array([-0.7, -0.7, -0.7])
 
 
 class Material:
-    def __init__(self, color, ambient, diffuse, specular, shinyness, refraction_weight=0.9):
+    def __init__(self, color, ambient, diffuse, specular, shinyness, refraction_weight=0.0):
         self.color = color
         self.ambient = ambient
         self.diffuse = diffuse
@@ -137,17 +138,10 @@ class Plane():
         # iterate over number of refractions
 
         reflection = reflect(intersection.ray.direction, self.normal)
-        #print('point from: ', intersection.ray.origin, ' direction: ', intersection.ray.direction)
-        #print('reflection: ', pt, ' direction: ',reflection)
-
         r = Ray(pt, reflection)
         i = Intersection(r, RAY_T_MAX)
-
         if shapeSet.intersect(i, light, self):
-            print('intersection of', self, ' with ', i.pShape)
-            print(i.color)
-            print(self.color)
-
+            return i.color
         return black
 
     def getShadow(self, pt, shapeSet, light_vector):
@@ -192,6 +186,12 @@ class CheckBoard(Plane):
             return self.material.color
         else:
             return black
+
+class LightSet:
+    def __init__(self):
+        self.lights = []
+    def addShape(self, light):
+        self.lights.append(light)
 
 class Light:
     def __init__(self, center, intensity):
@@ -273,22 +273,27 @@ class Sphere:
         #else:
         #    light_color = black
         if self.material.refraction_weight > 0:
-            refraction_color = self.getRefraction(intersection, pt)
+            refraction_color = self.getRefraction(intersection, pt, light, shapeSet)
         else:
             refraction_color = black
 
         #print(shadow_color, light_color, base_color)
-        return shadow_color * (light_color + refraction_color)
+
+        final_color = shadow_color * (light_color * (1 - self.material.refraction_weight) + refraction_color * self.material.refraction_weight)
+
+        return final_color
         #  + base_color
 
-    def getRefraction(self, intersection, pt):
+    def getRefraction(self, intersection, pt, light, shapeSet):
         # iterate over number of refractions
-
         reflection = reflect(intersection.ray.direction, self.normalFromPt(pt))
-        #print('point from: ', intersection.ray.origin, ' direction: ', intersection.ray.direction)
-        #print('reflection: ', pt, ' direction: ',reflection)
 
+        r = Ray(pt, reflection)
+        i = Intersection(r, RAY_T_MAX)
+        if shapeSet.intersect(i, light, self):
+            return i.color
         return black
+
 
     def normalFromPt(self, point):
         return normalize(point - self.center)
