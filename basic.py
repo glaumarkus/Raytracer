@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     l = Light(np.array([-130, 170, 230]), .8)
 
-    res = 1060
+    res = 106
     c = Camera(
         res,                             
         np.array([-280., 0.,20.]),        # origin
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     img_rgb = img.get_image()
     img_rgb *= 255
-    blur = cv.GaussianBlur(img_rgb,(5,5),0)
+    blur = cv2.GaussianBlur(img_rgb,(5,5),0)
 
     cv2.imwrite('test.jpg', blur.astype(int)) 
     #cv2_imshow('img',img_rgb.astype(int))
