@@ -8,7 +8,6 @@ from intersection import Intersection
 from shapes import Material, ShapeSet, Plane, Sphere, Light, CheckBoard
 from observer import Image, Camera
 
-
 RAY_T_MIN = 0.0001
 RAY_T_MAX = 1.0e4
 
@@ -38,38 +37,28 @@ def reflect(incoming, normal):
 
 def RayTrace(image, camera, shape, light):
 
-    image.create_image(camera.H * 2, camera.W * 2)
     black = np.array([0.,0.,0.])
     white = np.array([1.,1.,1])
 
-    print('Duration:')
-    sep = int(image.H / 40)
-    counter = 0
-    counter2 = 0
+    for x in range(image.getWidth()):
+        for y in range(image.getHeight()):
+            
+            # screen coord
+            X = 2. * x / image.getWidth() - 1
+            Y = -2. * y / image.getHeight() + 1.
 
-    for x in range(image.H):
-
-        counter += 1
-        if counter > sep:
-            counter = 0
-            counter2 += 1
-            print('#', end='', flush=True)
-
-        for y in range(image.W):
-            if camera.getRay(x,y):
-                r = camera.getRay(x,y)
-                i = Intersection(r, RAY_T_MAX)
-                if shape.intersect(i, light):
-                    image.image[x,y] = clamp_color(i.color)
-                else:
-                    image.image[x,y] = black
-
+            r = camera.getRay(X,Y)
+            i = Intersection(r, RAY_T_MAX)
+            #print(x,y, image.getWidth(), image.getHeight())
+            if shape.intersect(i, light):
+                image.image[y, x] = clamp_color(i.color)
+            else:
+                image.image[y, x] = black
 
 
 if __name__ == '__main__':
 
     print('Start Raytracer')
-
 
 
     # color blueprints
@@ -103,7 +92,7 @@ if __name__ == '__main__':
 
     back = Plane(np.array([300., 0., 0.]), np.array([1., 0., 0.]), MatBack)
     right = Plane(np.array([0., -170., 0.]), np.array([0, -1., 0.]), MatBack2)
-    #b = Plane(np.array([0., 0., 0]), np.array([0., 0., 1.]), MatGray)
+    left = Plane(np.array([0., 170., 0.]), np.array([0, 1., 0.]), MatBack2)
     b = CheckBoard(np.array([0., 0., 0.]), np.array([0., 0., 1.]), MatGray)
 
     if True:
@@ -117,6 +106,7 @@ if __name__ == '__main__':
         s.addShape(b)
         s.addShape(back)
         s.addShape(right)
+        s.addShape(left)
 
     else:
 
@@ -127,32 +117,24 @@ if __name__ == '__main__':
         s.addShape(s7)
         s.addShape(b)
 
-
-        pass
-
     l = Light(np.array([-130, 170, 230]), .8)
 
-    res = 106
-    c = Camera(
-        res,                             
-        np.array([-280., 0.,20.]),        # origin
-        np.array([1., 0., 0.]),         # direction
-        np.array([0., 0., 1.]),         # up
-        np.array([0., 1., 0.]),         # right
-        20.,                            # fov
-        1920 / 1080)                    # ratio
+    res = 80
 
+    c = Camera(                           
+    np.array([-200., 0., 70.]),        # origin
+    np.array([1., 0., 0.]),         # target
+    np.array([0., 0., 1.]),         # up
+    (15. * math.pi / 180.),                            # fov
+    1920 / 1080)                    # ratio
 
-    img = Image()
+    img = Image(res, 16/9)
     RayTrace(img, c, s, l)
 
     img_rgb = img.get_image()
     img_rgb *= 255
     blur = cv2.GaussianBlur(img_rgb,(5,5),0)
-
     cv2.imwrite('test.jpg', blur.astype(int)) 
-    #cv2_imshow('img',img_rgb.astype(int))
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+
 
 

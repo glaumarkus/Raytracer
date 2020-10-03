@@ -32,71 +32,32 @@ def reflect(incoming, normal):
     return incoming - normal * 2. * dot(incoming, normal)
 
 class Image:
-    def __init__(self):
-        pass
-    def create_image(self, H, W):
-        self.H = H
-        self.W = W
-        self.image = np.zeros((self.H, self.W, 3))
+    def __init__(self, H, aspectRatio):
+        self.h = H
+        self.w = int(H * aspectRatio)
+        self.image = np.zeros((self.h, self.w, 3))
+    def getHeight(self):
+        return self.h
+    def getWidth(self):
+        return self.w
     def get_image(self):
-        return np.flip(np.flip(self.image, axis=0), axis=1)
+        return self.image #np.flip(np.flip(self.image, axis=0), axis=1)
 
 
 class Camera:
-    def __init__(self, vertical_resolution, origin, direction, up, right, fov, ratio):
+    def __init__(self, origin, target, upguide, fov, aspectRatio):
 
-        self.H = int(vertical_resolution / 2)
-        self.H_it = self.H * 2
-        self.W = int(self.H * ratio)
-        self.W_it = self.W * 2
         self.origin = origin
-        self.direction = direction
-        self.up = up
-        self.right = right
-        self.increment = fov / self.H
-        self.calculateRayMap()
+        self.forward = normalize(target - origin)
+        self.forward = target
+        self.right = normalize(cross(self.forward, upguide))
+        self.up = cross(self.right, self.forward)
 
-    def calculateRayMap(self):
-        self.RayMap = {}
-        for y in range(-self.H, self.H + 1):
-            horizontal_add = math.tan(self.increment * y * math.pi / 180)
-            for x in range(-self.W, self.W + 1):
-                vertical_add = math.tan(self.increment * x * math.pi / 180)
-                target_point = normalize((vertical_add * self.right + self.direction) + (horizontal_add * self.up + self.direction))
-                self.RayMap[(y + self.H,x + self.W)] = Ray(self.origin , target_point, RAY_T_MAX)
-                
+        self.h = math.tan(fov)
+        self.w = self.h * aspectRatio
+        
     def getRay(self, x, y):
-        return self.RayMap[(x,y)]
+        direction = self.forward + x * self.w * self.right + y * self.h * self.up
+        return Ray(self.origin, normalize(direction))
 
 
-class CameraNew:
-    def __init__(self):
-        pass
-
-'''
-class camera {
-    public:
-        camera() {
-            auto aspect_ratio = 16.0 / 9.0;
-            auto viewport_height = 2.0;
-            auto viewport_width = aspect_ratio * viewport_height;
-            auto focal_length = 1.0;
-
-            origin = point3(0, 0, 0);
-            horizontal = vec3(viewport_width, 0.0, 0.0);
-            vertical = vec3(0.0, viewport_height, 0.0);
-            lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0, 0, focal_length);
-        }
-
-        ray get_ray(double u, double v) const {
-            return ray(origin, lower_left_corner + u*horizontal + v*vertical - origin);
-        }
-
-    private:
-        point3 origin;
-        point3 lower_left_corner;
-        vec3 horizontal;
-        vec3 vertical;
-};
-
-'''
